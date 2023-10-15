@@ -1,0 +1,126 @@
+---
+title: "Spotify_popularity"
+author: "lyl"
+date: "2022/5/5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r 0.0}
+##读取数据
+rm(list = ls())
+Music=read.csv("data_cleaned.csv");
+attach(Music)
+n=nrow(Music);m=ncol(Music)-1
+```
+```{r z}
+detach(Music)
+```
+
+```{r 0.1}
+##分类
+boxplot(popularity, xlab = "Popularity")
+#1:流形; 2:较流行; 3:一般流形; 4:不流行
+popClass=rep(1,n);
+popClass[popularity<=50]=2
+popClass[popularity<=28]=3
+popClass[popularity<=5]=4
+Music=data.frame(popClass,Music[,-1]);
+```
+```{r 0.2}
+#相关性检验
+library(corrplot)
+corrplot(corr=cor(Music),type="upper")
+
+par(mfrow=c(3,3))
+for(i in 1:25){
+  boxplot(Music[,i+1]~popClass,ylab=names(Music)[i+1])
+}
+```
+```{r 0.3}
+#降维
+music.cor=data.frame(ID=order(abs(cor(popClass,Music)),decreasing = TRUE),
+                Name=names(Music)[order(abs(cor(popClass,Music)),
+                                 decreasing = TRUE)],
+                Cor=cor(popClass,Music)[order(abs(cor(popClass,Music)),
+                                 decreasing = TRUE)])
+music.cor[,2:3]
+music=Music[,music.cor$ID[1:26]];
+par(mfrow=c(2,4))
+for(i in 1:8){
+  boxplot(music[,i+1]~popClass,ylab=names(music)[i+1])
+}
+```
+```{r 1.1}
+set.seed(1)
+train=sample(1:n,n/2)
+music.test=music[-train,];
+popClass.test=popClass[-train];
+```
+```{r 1}
+library(MASS)
+lda.err=rep(0,20)
+for(i in 1:20){
+  music.train=music[,seq(1,i+1,by=1)]
+  music.t=music.test[,seq(1,i+1,by=1)];
+  
+  music.lda=lda(popClass~.,data=music.train,subset = train)
+  prob.lda=predict(music.lda, newdata = music.t)
+  pred.lda=apply(prob.lda$posterior,1,which.max)
+  lda.err[i]=mean(pred.lda!=popClass.test)
+}
+plot(lda.err,type = 'l',xlab = "dimension",ylab="Error")
+lda.err[6];
+```
+```{r 1.2}
+library(class)
+knn.err=rep(0,20)
+for(i in 1:20){
+  music.train=music[train,2:6];music.t=music.test[,2:6];
+  popClass.train=popClass[train]
+  knn.pred=knn(music.train,music.t,popClass.train,k=i)
+  knn.err[i]=mean(knn.pred!=popClass.test)
+}
+plot(knn.err,type = 'l',xlab = "K",ylab="Error")
+which.min(knn.err);min(knn.err)
+```
+
+```{r 1.3}
+library(tree)
+popClass=as.factor(popClass);music[,1]=popClass
+music.tree=tree(popClass~.,data = music, subset=train)
+summary(music.tree)
+tree.prob=predict(music.tree,newdata = music.test)
+tree.pred=apply(tree.prob, 1, which.max)
+mean(tree.pred!=popClass.test)
+plot(music.tree);text(music.tree)
+```
+
+```{r 1.4.5}
+library(e1071)
+music[,1]=as.factor(popClass)
+set.seed(1)
+tune.out=tune(svm, popClass~., data = music[train[sample(1:5e3,5e2)], 1:7],
+              kernel="radial",
+              ranges=list(cost=c(0.01, 0.1, 1, 10, 20),
+                          gamma=c(0.01, 0.05, 0.1, 0.5, 1, 5)))
+summary(tune.out)
+```
+
+```{r 1.4.1}
+music.svmR=svm(popClass~.,data = music[train,1:7], kernel="radial",
+              cost = 1, gamma = 0.1)
+svmR.pred=predict(music.svmR, newdata = music.test, type="class")
+mean(svmR.pred!=popClass.test)
+```
+```{r}
+par(mfrow=c(2,2))
+plot(music.svmR, music[,1:7], acousticness~speechiness)
+plot(music.svmR, music[,1:7], acousticness~count)
+plot(music.svmR, music[,1:7], speechiness~count)
+plot(music.svmR, music[,1:7], speechiness~instrumentalness)
+```
