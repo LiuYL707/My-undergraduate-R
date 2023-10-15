@@ -1,3 +1,3 @@
 - The final personal assignment of the alternative course "Approaching the Poles"
-- I chose my topic: the way to classify some kinds of penguins by several their features
+- topic: the way to classify some kinds of penguins by several their features
 - The knowlege comes from the course of Statistical Learning and Big Data Analysis
