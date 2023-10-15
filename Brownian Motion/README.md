@@ -1,1 +1,1 @@
-This is the midterm assignment of Stochastic Process
+This is the personal midterm assignment of Stochastic Process.
