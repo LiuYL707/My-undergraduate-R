@@ -1,3 +1,3 @@
 - This is the final assignment of Statistical Learning Course.
-- It was a teamwork and my work about the popularity of music
+- It was a teamwork and the topic was about the popularity of music
 - My work was coding and analyzing the classification model, and my teammates was responsible for regression model, find and clean the data.
